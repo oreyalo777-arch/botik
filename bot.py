@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 from flask import Flask
 import threading
 
-# === НАСТРОЙКИ (ЗАМЕНИ ТОКЕН) ===
+# === НАСТРОЙКИ ===
 BOT_TOKEN = "8925535264:AAHqcSXI0AsZAeP6DayLcZ6k3T7Ll8tOQfc"
 
 # === ТВОЙ СПИСОК ФРАЗ ===
@@ -18,18 +18,18 @@ PHRASES = [
     "Сегодня готова сделать за тебя всё, что ты попросишь❤️🫂",
     "Сегодня вечером делаем всё, что хочешь ты!",
     "Купон на обнимашки, а ну иди сюда моя прелесть😈😈😈",
-    "Купон на прогулку туда, куда ты хочешь)",
+    "Купон на прогулку туда, куда ты хочешь)", 
     "Купон на ванну с шиммером и бомбочкой и поцелуи в носик!!",
     "Купон на ответ на любой твой вопрос)",
     "Я доначу тебе в ферму))",
     "Купон на совместную игру в ферму",
     "Я очень люблю тебя всегда, даже когда тебе кажется, что это не так🫂",
-    "Сегодня я внимательно слушаю тебя и не перебиваю даже тогда, когда хочется",
+    "Сегодня я внимательно слушаю тебя и не перебиваю даже тогда, когда хочется", 
     "Купон на парную йогу🤯",
     "Тебе очень идет розовый, малыш)",
     "Не забывай пить воду, милая!!",
     "Сегодня смотрим только то, что ты выберешь",
-    "Купон на рисование вместе",
+    "Купон на рисование вместе", 
     "Мы идем в театр, побежали выбирать постановку!!",
     "Мы идем на концерт, выбирай исполнителя!!",
     "Купон на мытую посуду)",
@@ -45,7 +45,7 @@ PHRASES = [
     "Ты очень милая, бублик, обнимаю🥺",
 ]
 
-# === ВСТУПЛЕНИЕ (только один раз) ===
+# === ВСТУПЛЕНИЕ ===
 WELCOME_MESSAGE = (
     "Привет, Анечка, моя хорошая ❤️\n\n"
     "Я - бот, который создан, чтобы напоминать тебе о самом главном. "
@@ -66,14 +66,18 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     today = datetime.now().date()
 
+    # Вступление (один раз) — ТОЛЬКО вступление, без фразы
     if user_id not in welcomed_users:
         welcomed_users.add(user_id)
         await update.message.reply_text(WELCOME_MESSAGE)
+        return  # Выходим, чтобы не выдавать фразу
 
+    # Проверка на сегодняшнюю фразу
     if user_id in last_used_date and last_used_date[user_id] == today:
         await update.message.reply_text("🌙 Ты уже получила свою фразу сегодня. Приходи завтра ❤️")
         return
 
+    # Выбор фразы
     available = [p for p in PHRASES if p not in used_phrases]
     if not available:
         used_phrases = []
@@ -85,14 +89,17 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(chosen)
 
 async def reset_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сбрасывает историю для пользователя, который вызвал команду"""
     user_id = update.effective_user.id
+
     if user_id in welcomed_users:
         welcomed_users.remove(user_id)
     if user_id in last_used_date:
         del last_used_date[user_id]
+
     await update.message.reply_text("✅ Твоя история сброшена ❤️")
 
-# === ВЕБ-СЕРВЕР ДЛЯ RENDER (чтобы держать порт открытым) ===
+# === ВЕБ-СЕРВЕР ДЛЯ RENDER ===
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -102,7 +109,7 @@ def health_check():
 def run_web_server():
     flask_app.run(host='0.0.0.0', port=10000)
 
-# === ЗАПУСК БОТА И ВЕБ-СЕРВЕРА ===
+# === ЗАПУСК ===
 def main():
     # Запускаем веб-сервер в отдельном потоке
     thread = threading.Thread(target=run_web_server, daemon=True)
