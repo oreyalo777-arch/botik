@@ -102,19 +102,19 @@ def health_check():
     return "Бот работает!", 200
 
 def run_web_server():
-    flask_app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
+    flask_app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)
 
 # === ЗАПУСК ===
 if __name__ == "__main__":
-    # Запускаем веб-сервер в фоновом потоке
+    # Запускаем веб-сервер в фоновом потоке с параметром use_reloader=False
     web_thread = threading.Thread(target=run_web_server, daemon=True)
     web_thread.start()
     print("🔄 Веб-сервер запущен в фоне")
 
-    # Даём Flask время, чтобы подняться
+    # Небольшая пауза, чтобы Flask точно успел инициализироваться
     time.sleep(2)
 
-    # Запускаем Telegram-бота в основном потоке
+    # Запускаем Telegram-бота
     print("🔄 Запуск Telegram-бота...")
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", handle))
