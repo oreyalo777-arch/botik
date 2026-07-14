@@ -105,6 +105,25 @@ def main():
     app.add_handler(CommandHandler("reset_me", reset_user))  # <-- добавить эту строку
     print("✅ Бот запущен!")
     app.run_polling()
+    # Добавьте этот код в ваш bot.py, чтобы открыть порт для Render
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Бот работает!", 200
+
+def run_web_server():
+    app.run(host='0.0.0.0', port=10000)
+
+# Запускаем веб-сервер в отдельном потоке, чтобы он не блокировал бота
+if __name__ == "__main__":
+    thread = threading.Thread(target=run_web_server, daemon=True)
+    thread.start()
+    # Здесь ваш обычный запуск бота
+    # app.run_polling() или main()
 
 if __name__ == "__main__":
     main()
