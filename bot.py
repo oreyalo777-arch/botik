@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from flask import Flask
 import threading
+import time
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "8925535264:AAHqcSXI0AsZAeP6DayLcZ6k3T7Ll8tOQfc"
@@ -42,7 +43,7 @@ PHRASES = [
     "Купон на вкусный тортик",
     "Готовим вместе что нибудь вкусненькое",
     "Обнимаю тебя и глажу столько, сколько ты захочешь!",
-    "С меня вкусный напиточек)",
+    "Ты очень милая, бублик, обнимаю🥺",
 ]
 
 # === ВСТУПЛЕНИЕ ===
@@ -66,18 +67,15 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     today = datetime.now().date()
 
-    # Вступление (один раз) — ТОЛЬКО вступление, без фразы
     if user_id not in welcomed_users:
         welcomed_users.add(user_id)
         await update.message.reply_text(WELCOME_MESSAGE)
-        return  # Выходим, чтобы не выдавать фразу
+        return
 
-    # Проверка на сегодняшнюю фразу
     if user_id in last_used_date and last_used_date[user_id] == today:
         await update.message.reply_text("🌙 Ты уже получила свою фразу сегодня. Приходи завтра ❤️")
         return
 
-    # Выбор фразы
     available = [p for p in PHRASES if p not in used_phrases]
     if not available:
         used_phrases = []
@@ -89,14 +87,11 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(chosen)
 
 async def reset_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Сбрасывает историю для пользователя, который вызвал команду"""
     user_id = update.effective_user.id
-
     if user_id in welcomed_users:
         welcomed_users.remove(user_id)
     if user_id in last_used_date:
         del last_used_date[user_id]
-
     await update.message.reply_text("✅ Твоя история сброшена ❤️")
 
 # === ВЕБ-СЕРВЕР ДЛЯ RENDER ===
@@ -107,16 +102,19 @@ def health_check():
     return "Бот работает!", 200
 
 def run_web_server():
-    flask_app.run(host='0.0.0.0', port=10000)
+    flask_app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
 
 # === ЗАПУСК ===
 if __name__ == "__main__":
-    # Запускаем веб-сервер в отдельном потоке
-    thread = threading.Thread(target=run_web_server, daemon=True)
-    thread.start()
+    # Запускаем веб-сервер в фоновом потоке
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
     print("🔄 Веб-сервер запущен в фоне")
 
-    # Запускаем Telegram-бота
+    # Даём Flask время, чтобы подняться
+    time.sleep(2)
+
+    # Запускаем Telegram-бота в основном потоке
     print("🔄 Запуск Telegram-бота...")
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", handle))
@@ -125,6 +123,6 @@ if __name__ == "__main__":
 
     try:
         print("✅ Бот запущен и готов к работе!")
-        app.run_polling()
+        app.run_polling(drop_pending_updates=True)
     except Exception as e:
         print(f"❌ Ошибка при запуске бота: {e}")
